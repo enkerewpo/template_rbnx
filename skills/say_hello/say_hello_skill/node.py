@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import logging
 
-from robonix_api import Capability
+from robonix_api import Capability, Ok, Err, Deferred
 
 cap = Capability(id="say_hello", namespace="robonix/skill/say_hello")
 
@@ -74,10 +74,10 @@ def init(cfg: dict):
     only to inspect the cap tree, not to actually invoke the tool."""
     style = cfg.get("default_style", _state["default_style"])
     if style not in ("formal", "casual", "pirate"):
-        return cap.error(f"unsupported default_style {style!r}")
+        return Err(f"unsupported default_style {style!r}")
     _state["default_style"] = style
     log.info("init ok: default_style=%s", style)
-    return cap.ready()
+    return Ok()
 
 
 @cap.on_activate
@@ -88,7 +88,7 @@ def activate(cfg: dict):
     _state["active"] = True
     _state["greet_count"] = 0
     log.info("activated — ready to greet")
-    return cap.ready()
+    return Ok()
 
 
 @cap.on_deactivate
@@ -98,7 +98,7 @@ def deactivate():
     fires this on idle."""
     log.info("deactivating after %d greetings", _state["greet_count"])
     _state["active"] = False
-    return cap.ready()
+    return Ok()
 
 
 @cap.on_shutdown

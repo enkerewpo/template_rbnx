@@ -23,7 +23,7 @@ service:
   MCP tools
     @cap.mcp("...")  — typed-input tool the LLM dispatches via pilot
 
-  Result helpers: cap.ready / cap.error / cap.deferred
+  Result helpers: Ok / Err / Deferred
 
 Replace `# TODO(planner)` with your real planner. The skeleton wires
 the contract surface so every consumer (rbnx chat / scene / executor)
@@ -36,7 +36,7 @@ import threading
 import time
 import uuid
 
-from robonix_api import Capability
+from robonix_api import Capability, Ok, Err, Deferred
 from robonix_api.atlas_types import Transport
 
 cap = Capability(id="my_navigate", namespace="robonix/service/navigation")
@@ -118,14 +118,14 @@ def init(cfg: dict):
     })
     log.info("init ok: max_linear=%.2f goal_tol=%.2f",
              _state["max_linear"], _state["goal_tolerance"])
-    return cap.ready()
+    return Ok()
 
 
 @cap.on_activate
 def activate(cfg: dict):
     """INITIALIZED → RUNNABLE. Discover the chassis primitive and open
     the channel we'll use to issue motion commands. Returns
-    cap.deferred(...) when chassis isn't online yet — rbnx boot will
+    Deferred(...) when chassis isn't online yet — rbnx boot will
     surface that to the operator and (in v0.2) retry."""
 
     # 1. Discovery: any cap providing chassis/move over gRPC?
@@ -134,7 +134,7 @@ def activate(cfg: dict):
         transport=Transport.GRPC,
     )
     if rec is None:
-        return cap.deferred("no chassis primitive online (waiting for chassis/move)")
+        return Deferred("no chassis primitive online (waiting for chassis/move)")
 
     # 2. Optional: list every chassis-providing cap. Multi-robot
     #    deploys would pick by cap_id (cap_id == device_id convention).
@@ -160,7 +160,7 @@ def activate(cfg: dict):
     #    navigation/* contracts are auto-declared by @cap.mcp / the
     #    Capability framework.
 
-    return cap.ready()
+    return Ok()
 
 
 @cap.on_deactivate
@@ -175,7 +175,7 @@ def deactivate():
     # Channels we opened with cap.connect are auto-closed by the
     # Capability framework; nothing to do here.
     log.info("deactivated")
-    return cap.ready()
+    return Ok()
 
 
 @cap.on_shutdown

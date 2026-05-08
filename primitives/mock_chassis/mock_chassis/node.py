@@ -20,7 +20,7 @@ import math
 import threading
 import time
 
-from robonix_api import Capability
+from robonix_api import Capability, Ok, Err, Deferred
 
 cap = Capability(id="mock_chassis", namespace="robonix/primitive/chassis")
 
@@ -132,7 +132,7 @@ def init(cfg: dict):
 
     log.info("init ok: odom_rate=%.1f Hz circle_r=%.2f m",
              _state["odom_rate_hz"], _state["circle_radius_m"])
-    return cap.ready()
+    return Ok()
 
 
 @cap.on_activate
@@ -144,7 +144,7 @@ def activate(cfg: dict):
                                    name="mock_chassis-odom",
                                    daemon=True)
     _pub_thread.start()
-    return cap.ready()
+    return Ok()
 
 
 @cap.on_shutdown
