@@ -1,0 +1,21 @@
+manifestVersion: 1
+
+package:
+  name: com.example.template.my_navigate
+  version: 0.1.0
+  vendor: example
+  description: Navigation service template — finds a chassis primitive, declares MCP nav tools.
+  license: MIT
+
+capability_id: my_navigate
+
+build: bash scripts/build.sh
+start: bash scripts/start.sh
+
+# Built-in navigation contracts. service/navigation/{driver,navigate,
+# status,cancel} live under <robonix>/capabilities/service/navigation/.
+capabilities:
+  - name: robonix/service/navigation/driver
+  - name: robonix/service/navigation/navigate
+  - name: robonix/service/navigation/status
+  - name: robonix/service/navigation/cancel

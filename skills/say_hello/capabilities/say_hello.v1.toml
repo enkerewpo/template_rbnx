@@ -1,0 +1,11 @@
+# MCP-callable greeting tool. The LLM picks this up via pilot when
+# the user says something like "say hello to alice" / "greet bob like
+# a pirate" — the description field below is what the LLM reads.
+[contract]
+id      = "robonix/skill/say_hello/say"
+version = "1"
+kind    = "skill"
+idl     = "say_hello/srv/SayHello.srv"
+
+[mode]
+type = "rpc"

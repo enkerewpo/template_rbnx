@@ -1,0 +1,55 @@
+manifestVersion: 1
+name: rbnx-template-deploy
+
+# Robonix system services. atlas / executor / pilot / liaison ship with
+# robonix-cli; rbnx boot spawns them in this order before any user
+# package. pilot needs a VLM upstream — fill the env vars in your shell
+# (or paste into manifest verbatim if you don't mind the secret in git).
+system:
+  atlas:    { listen: 127.0.0.1:50051, log: info }
+  executor: { listen: 127.0.0.1:50061, log: info }
+  pilot:
+    listen: 127.0.0.1:50071
+    log: info
+    vlm:
+      upstream:   ${VLM_BASE_URL}
+      api_key:    ${VLM_API_KEY}
+      model:      ${VLM_MODEL}
+      api_format: openai
+  liaison:  { listen: 127.0.0.1:50081, log: info }
+
+# ── Hardware abstraction layer ───────────────────────────────────────
+# `mock_chassis` runs in a docker container with ROS 2 humble and
+# publishes fake /odom + accepts /cmd_vel. Swap in a real chassis
+# driver (mid360, agilex_ranger, etc.) to deploy on actual hardware
+# — the contract surface (robonix/primitive/chassis/*) stays the same.
+primitive:
+  - name: mock_chassis
+    path: ./primitives/mock_chassis
+    config:
+      odom_frame:   odom
+      base_frame:   base_link
+      odom_rate_hz: 20.0
+      # Fake "drive in a circle" trajectory radius, m. Set 0 to keep
+      # the robot stationary and only echo /cmd_vel.
+      circle_radius_m: 0.0
+
+# ── Application services ─────────────────────────────────────────────
+# `my_navigate` is the template service: shows how to find primitives
+# via atlas, declare own contracts, accept goals over MCP. Replace the
+# stub planner with A* / Pure Pursuit / nav2 / your own.
+service:
+  - name: my_navigate
+    path: ./services/my_navigate
+    config:
+      max_linear:     0.4
+      goal_tolerance: 0.3
+
+# ── Skills ───────────────────────────────────────────────────────────
+# `say_hello` is the template skill: defines its own contract IDL +
+# toml, exposes a single MCP tool. pilot dispatches to it through
+# executor when the user asks something matching the tool description.
+skill:
+  - name: say_hello
+    path: ./skills/say_hello
+    config: {}

@@ -1,0 +1,12 @@
+# rbnx build artefacts (codegen output, docker stamps, instance JSON, logs).
+**/rbnx-build/
+**/rbnx-boot/
+
+# Stray __pycache__ from running the python entry points natively.
+**/__pycache__/
+*.pyc
+
+# Editor noise.
+.vscode/
+.idea/
+*.swp

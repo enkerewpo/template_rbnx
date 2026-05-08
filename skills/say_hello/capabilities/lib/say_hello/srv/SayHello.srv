@@ -1,0 +1,7 @@
+# Single-RPC service used by the say_hello skill's MCP tool.
+# Request: who to greet + style hint.
+# Response: the greeting string the skill produced.
+string name      # required: the person / thing to greet
+string style     # optional: "formal", "casual", "pirate", ... ("" for default)
+---
+string greeting  # the rendered greeting

@@ -1,0 +1,20 @@
+manifestVersion: 1
+
+package:
+  name: com.example.template.say_hello
+  version: 0.1.0
+  vendor: example
+  description: Greeting skill template — owns its own contracts, exposes one MCP tool.
+  license: MIT
+
+capability_id: say_hello
+
+build: bash scripts/build.sh
+start: bash scripts/start.sh
+
+# Package-local contracts: skills usually own their interface (they ARE
+# the new capability, not an instance of an existing one). The codegen
+# step picks these up via `rbnx codegen --contracts ./capabilities`.
+capabilities:
+  - name: robonix/skill/say_hello/driver
+  - name: robonix/skill/say_hello/say
