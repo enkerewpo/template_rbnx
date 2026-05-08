@@ -136,7 +136,7 @@ def init(cfg: dict):
 
 
 @cap.on_activate
-def activate(cfg: dict):
+def activate():
     """INITIALIZED → RUNNABLE. Start the odom publish thread."""
     global _pub_thread
     _stop.clear()

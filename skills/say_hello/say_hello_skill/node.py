@@ -81,7 +81,7 @@ def init(cfg: dict):
 
 
 @cap.on_activate
-def activate(cfg: dict):
+def activate():
     """INITIALIZED → RUNNABLE. Heavy: this is where a real skill
     loads models, opens hardware, starts background threads.
     Triggered by the executor lazily on first MCP call."""

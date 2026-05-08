@@ -122,7 +122,7 @@ def init(cfg: dict):
 
 
 @cap.on_activate
-def activate(cfg: dict):
+def activate():
     """INITIALIZED → RUNNABLE. Discover the chassis primitive and open
     the channel we'll use to issue motion commands. Returns
     Deferred(...) when chassis isn't online yet — rbnx boot will
