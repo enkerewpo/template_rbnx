@@ -58,12 +58,12 @@ template_rbnx/
 │       ├── package_manifest.yaml
 │       ├── scripts/{build,start}.sh
 │       ├── docker/{Dockerfile,entrypoint.sh}
-│       └── mock_chassis/node.py
+│       └── mock_chassis/main.py
 ├── services/
 │   └── my_navigate/
 │       ├── package_manifest.yaml
 │       ├── scripts/{build,start}.sh
-│       └── my_navigate/node.py
+│       └── my_navigate/main.py
 └── skills/
     └── say_hello/
         ├── package_manifest.yaml
@@ -72,16 +72,16 @@ template_rbnx/
         │   ├── lib/say_hello/srv/SayHello.srv
         │   ├── say_hello.v1.toml
         │   └── driver.v1.toml
-        └── say_hello_skill/node.py
+        └── say_hello_skill/main.py
 ```
 
 ## Customizing
 
 - **Replace `mock_chassis`** with your real driver: keep the same
   contract IDs (`robonix/primitive/chassis/{driver,move,twist_in,odom}`),
-  swap the `node.py` body. Service consumers don't need to change.
+  swap the `main.py` body. Service consumers don't need to change.
 - **Replace `my_navigate`'s planner**: search for `TODO(planner)` in
-  `node.py`. The skeleton already wires init / dependency resolution
+  `main.py`. The skeleton already wires init / dependency resolution
   / MCP tools — just fill the body.
 - **Add a new skill**: copy `skills/say_hello/`, change the contract
   IDs under `capabilities/`, append to `robonix_manifest.yaml`.

@@ -67,45 +67,56 @@ _state: dict = {
 
 
 # ── @cap.mcp tools ───────────────────────────────────────────────────
+# IDL shapes (lib/navigation/srv/):
+#   Navigate.srv             req: geometry_msgs/PoseStamped goal
+#                            resp: bool accepted, string goal_id, string status_message
+#   GetNavigationStatus.srv  req: string goal_id
+#                            resp: bool known, string status, bool terminal
+#   CancelNavigation.srv     req: string goal_id
+#                            resp: bool accepted, string status_message
 @cap.mcp("robonix/service/navigation/navigate")
 def navigate(req: Navigate_Request) -> Navigate_Response:
-    """Drive the robot to (x, y, [yaw]). Non-blocking — returns a
-    task_id; poll with `status`. TODO(planner): replace the stub with
-    A* / nav2 / Pure Pursuit / your favourite."""
-    task_id = str(uuid.uuid4())
+    """Drive the robot to req.goal (PoseStamped). Non-blocking — returns
+    a goal_id; poll progress with `status`. TODO(planner): replace the
+    stub with A* / nav2 / Pure Pursuit / your favourite."""
+    goal_id = str(uuid.uuid4())
+    pos = req.goal.pose.position
     with _state["lock"]:
-        _state["active_task_id"] = task_id
-        _state["active_goal"] = (req.target_x, req.target_y, req.target_yaw)
-    log.info("navigate accepted task=%s target=(%.2f, %.2f)",
-             task_id, req.target_x, req.target_y)
+        _state["active_task_id"] = goal_id
+        _state["active_goal"] = (pos.x, pos.y, pos.z)
+    log.info("navigate accepted goal=%s target=(%.2f, %.2f)", goal_id, pos.x, pos.y)
     # TODO(planner): actually plan + drive. For now we just record.
-    return Navigate_Response(accepted=True, task_id=task_id, message="stub planner")
+    return Navigate_Response(
+        accepted=True,
+        goal_id=goal_id,
+        status_message="stub planner accepted goal",
+    )
 
 
 @cap.mcp("robonix/service/navigation/status")
 def status(req: GetNavigationStatus_Request) -> GetNavigationStatus_Response:
-    """Poll progress. Empty task_id == latest task."""
+    """Poll progress. Empty goal_id == latest goal."""
     with _state["lock"]:
-        tid = req.task_id or _state["active_task_id"]
-        running = tid and tid == _state["active_task_id"] and _state["active_goal"] is not None
+        gid = req.goal_id or _state["active_task_id"]
+        active = bool(gid) and gid == _state["active_task_id"] and _state["active_goal"] is not None
     return GetNavigationStatus_Response(
-        known=bool(tid),
-        state="running" if running else "idle",
-        progress=0.0 if running else 1.0,
-        eta_s=-1.0,
-        detail="stub planner",
+        known=bool(gid),
+        status="running" if active else "idle",
+        terminal=not active,
     )
 
 
 @cap.mcp("robonix/service/navigation/cancel")
 def cancel(req: CancelNavigation_Request) -> CancelNavigation_Response:
-    """Abort the active task. Idempotent."""
+    """Abort the active goal. Idempotent. Empty goal_id targets the active goal."""
     with _state["lock"]:
-        was_running = _state["active_goal"] is not None
+        was_active = _state["active_goal"] is not None
         _state["active_goal"] = None
         _state["active_task_id"] = ""
-    return CancelNavigation_Response(ok=True, message=
-        "cancelled" if was_running else "no active task")
+    return CancelNavigation_Response(
+        accepted=True,
+        status_message="cancelled" if was_active else "no active goal",
+    )
 
 
 # ── Lifecycle ────────────────────────────────────────────────────────

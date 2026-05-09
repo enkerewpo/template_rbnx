@@ -9,4 +9,4 @@ cd "$PKG_ROOT"
 # `rbnx-build/codegen/`, so we don't add those paths manually.
 export PYTHONPATH="$(rbnx path robonix-api):$PKG_ROOT:${PYTHONPATH:-}"
 
-exec python3 -m my_navigate.node
+exec python3 -m my_navigate.main

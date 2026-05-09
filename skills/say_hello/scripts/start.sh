@@ -5,4 +5,4 @@ cd "$PKG_ROOT"
 
 export PYTHONPATH="$(rbnx path robonix-api):$PKG_ROOT:${PYTHONPATH:-}"
 
-exec python3 -m say_hello_skill.node
+exec python3 -m say_hello_skill.main
