@@ -18,7 +18,7 @@ if ! command -v docker >/dev/null 2>&1; then
   echo "[build] error: docker not found on PATH" >&2
   exit 1
 fi
-DOCKER_FLAGS=()
+DOCKER_FLAGS=(--network=host)
 [[ "$CLEAN" == "1" ]] && DOCKER_FLAGS+=(--no-cache)
 docker build "${DOCKER_FLAGS[@]}" \
   -f docker/Dockerfile \
