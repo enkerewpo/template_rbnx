@@ -12,7 +12,7 @@ service:
 
   Discovery + connect
     atlas.get(capability_id)  — by id, returns CapabilityRecord | None
-    atlas.find(contract_id=…) — by contract, returns list[CapabilityRecord]
+    atlas.find(contract_id, *, transport=…) — by contract, returns list
     cap.connect(provider, contract_id, transport)  — open Channel
     Channel.endpoint          — atlas-resolved topic / host:port
 
@@ -143,7 +143,7 @@ def activate():
     #    atlas.find always returns a list — possibly empty, possibly
     #    multiple. Caller decides how to pick.
     candidates = atlas.find(
-        contract_id="robonix/primitive/chassis/move",
+        "robonix/primitive/chassis/move",
         transport=Transport.GRPC,
     )
     if not candidates:
