@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Container entrypoint. Sources ROS 2 humble, sets PYTHONPATH so the
-# cap can import codegen output + robonix_api, then exec's main.
+# cap can import codegen output + robonix_api, then exec's main.py.
 set -eo pipefail
 
 # shellcheck disable=SC1091

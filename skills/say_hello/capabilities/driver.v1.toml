@@ -1,5 +1,5 @@
 # Lifecycle interface every skill MUST declare. rbnx boot skips
-# CMD_ACTIVATE on skills (they stay at INITIALIZED). The executor
+# CMD_ACTIVATE on skills (they stay at INACTIVE). The executor
 # fires CMD_ACTIVATE just-in-time on the first MCP call.
 [contract]
 id      = "robonix/skill/say_hello/driver"

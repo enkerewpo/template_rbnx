@@ -106,7 +106,7 @@ def _publish_loop() -> None:
 # ── Lifecycle ────────────────────────────────────────────────────────
 @cap.on_init
 def init(cfg: dict):
-    """REGISTERED → INITIALIZED. Read cfg, declare ROS 2 contracts."""
+    """REGISTERED → INACTIVE. Read cfg, declare ROS 2 contracts."""
     _state.update({
         k: cfg.get(k, _state[k])
         for k in ("odom_frame", "base_frame", "odom_rate_hz", "circle_radius_m")
@@ -137,7 +137,7 @@ def init(cfg: dict):
 
 @cap.on_activate
 def activate():
-    """INITIALIZED → RUNNABLE. Start the odom publish thread."""
+    """INACTIVE → ACTIVE. Start the odom publish thread."""
     global _pub_thread
     _stop.clear()
     _pub_thread = threading.Thread(target=_publish_loop,

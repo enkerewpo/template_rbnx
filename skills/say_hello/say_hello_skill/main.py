@@ -3,7 +3,7 @@
 
 Demonstrates:
 
-  * Skill-kind lifecycle: rbnx boot stops at INITIALIZED, executor
+  * Skill-kind lifecycle: rbnx boot stops at INACTIVE, executor
     fires CMD_ACTIVATE on first MCP call (sticky thereafter).
     on_activate / on_deactivate are REQUIRED for skills.
   * Owning a custom contract under `capabilities/`: SayHello.srv +
@@ -69,7 +69,7 @@ def say(req: SayHello_Request) -> SayHello_Response:
 # ── Lifecycle ────────────────────────────────────────────────────────
 @cap.on_init
 def init(cfg: dict):
-    """REGISTERED → INITIALIZED. Light: parse config, validate inputs.
+    """REGISTERED → INACTIVE. Light: parse config, validate inputs.
     Don't allocate heavy resources — the user might have spawned us
     only to inspect the cap tree, not to actually invoke the tool."""
     style = cfg.get("default_style", _state["default_style"])
@@ -82,7 +82,7 @@ def init(cfg: dict):
 
 @cap.on_activate
 def activate():
-    """INITIALIZED → RUNNABLE. Heavy: this is where a real skill
+    """INACTIVE → ACTIVE. Heavy: this is where a real skill
     loads models, opens hardware, starts background threads.
     Triggered by the executor lazily on first MCP call."""
     _state["active"] = True
@@ -93,7 +93,7 @@ def activate():
 
 @cap.on_deactivate
 def deactivate():
-    """RUNNABLE → INITIALIZED. Drop heavy state but stay registered;
+    """ACTIVE → INACTIVE. Drop heavy state but stay registered;
     a follow-up MCP call will re-activate. Executor's eviction policy
     fires this on idle."""
     log.info("deactivating after %d greetings", _state["greet_count"])

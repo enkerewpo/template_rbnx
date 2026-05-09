@@ -11,10 +11,10 @@ service:
     @cap.on_shutdown   — last-chance cleanup
 
   Discovery + connect
-    cap.find(...)           — list candidates
-    cap.find_one(...)       — first match (auto-fail when None)
-    cap.connect(...)        — open Channel context manager
-    Channel.endpoint        — atlas-resolved topic / host:port
+    atlas.get(capability_id)  — by id, returns CapabilityRecord | None
+    atlas.find(contract_id=…) — by contract, returns list[CapabilityRecord]
+    cap.connect(provider, contract_id, transport)  — open Channel
+    Channel.endpoint          — atlas-resolved topic / host:port
 
   Atlas declares
     cap.declare_grpc(...)   — explicit gRPC declare (driver auto-declared)
@@ -36,7 +36,7 @@ import threading
 import time
 import uuid
 
-from robonix_api import Capability, Ok, Err, Deferred
+from robonix_api import Capability, Ok, Err, Deferred, atlas
 from robonix_api.atlas_types import Transport
 
 cap = Capability(id="my_navigate", namespace="robonix/service/navigation")
@@ -122,7 +122,7 @@ def cancel(req: CancelNavigation_Request) -> CancelNavigation_Response:
 # ── Lifecycle ────────────────────────────────────────────────────────
 @cap.on_init
 def init(cfg: dict):
-    """REGISTERED → INITIALIZED. Light: parse cfg only. Don't touch
+    """REGISTERED → INACTIVE. Light: parse cfg only. Don't touch
     other caps yet — they may not be online."""
     _state.update({
         k: cfg.get(k, _state[k]) for k in ("max_linear", "goal_tolerance")
@@ -134,39 +134,39 @@ def init(cfg: dict):
 
 @cap.on_activate
 def activate():
-    """INITIALIZED → RUNNABLE. Discover the chassis primitive and open
+    """INACTIVE → ACTIVE. Discover the chassis primitive and open
     the channel we'll use to issue motion commands. Returns
     Deferred(...) when chassis isn't online yet — rbnx boot will
-    surface that to the operator and (in v0.2) retry."""
+    surface that to the operator and retry."""
 
-    # 1. Discovery: any cap providing chassis/move over gRPC?
-    rec = cap.find_one(
+    # 1. Discovery: every cap providing chassis/move over gRPC.
+    #    atlas.find always returns a list — possibly empty, possibly
+    #    multiple. Caller decides how to pick.
+    candidates = atlas.find(
         contract_id="robonix/primitive/chassis/move",
         transport=Transport.GRPC,
     )
-    if rec is None:
+    if not candidates:
         return Deferred("no chassis primitive online (waiting for chassis/move)")
-
-    # 2. Optional: list every chassis-providing cap. Multi-robot
-    #    deploys would pick by cap_id (cap_id == device_id convention).
-    all_chassis = cap.find(contract_id="robonix/primitive/chassis/move")
+    rec = candidates[0]  # for a single-robot template; multi-robot deploys
+                         # pick by capability_id (e.g. atlas.get("front_chassis"))
     log.info("found %d chassis candidate(s); using %s",
-             len(all_chassis), rec.capability_id)
+             len(candidates), rec.capability_id)
 
-    # 3. Open a channel. The Channel context-manages the atlas
+    # 2. Open a channel. The Channel context-manages the atlas
     #    bookkeeping — Capability tracks it for teardown, so even
     #    if we never explicitly close, atlas drops the edge when
     #    we shut down.
     ch = cap.connect(
+        provider=rec,
         contract_id="robonix/primitive/chassis/move",
         transport=Transport.GRPC,
-        capability_id=rec.capability_id,
     )
     _state["chassis_cap_id"] = rec.capability_id
     _state["chassis_move_endpoint"] = ch.endpoint
     log.info("connected to %s @ %s", rec.capability_id, ch.endpoint)
 
-    # 4. (Optional) declare any extra contracts we expose beyond the
+    # 3. (Optional) declare any extra contracts we expose beyond the
     #    auto-declared MCP tools. Skipped here — the four
     #    navigation/* contracts are auto-declared by @cap.mcp / the
     #    Capability framework.
@@ -176,8 +176,8 @@ def activate():
 
 @cap.on_deactivate
 def deactivate():
-    """RUNNABLE → INITIALIZED. Drop the chassis channel, cancel any
-    active task. Idempotent."""
+    """ACTIVE → INACTIVE. Drop the chassis channel, cancel any active
+    task. Idempotent."""
     with _state["lock"]:
         _state["active_goal"] = None
         _state["active_task_id"] = ""

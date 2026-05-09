@@ -8,7 +8,7 @@ Contains one of each package kind so you can see the full pattern:
 | Layer       | Package          | What it shows |
 |-------------|------------------|---|
 | `primitive` | `mock_chassis`   | Docker-packaged ROS 2 driver. Publishes fake `/odom`, accepts `/cmd_vel`. Declares the built-in `robonix/primitive/chassis/*` contracts. |
-| `service`   | `my_navigate`    | Native Python. `on_init` finds chassis via `cap.find_one + cap.connect`, declares own MCP tools (`navigate / status / cancel` from built-in `robonix/service/navigation/*`). Stub planner — replace with A* / Pure Pursuit / nav2. |
+| `service`   | `my_navigate`    | Native Python. `on_init` finds chassis via `atlas.find + cap.connect`, declares own MCP tools (`navigate / status / cancel` from built-in `robonix/service/navigation/*`). Stub planner — replace with A* / Pure Pursuit / nav2. |
 | `skill`     | `say_hello`      | Native Python. **Owns its own contract** under `capabilities/` (IDL + toml). Single MCP tool the LLM dispatches via `rbnx chat`. |
 
 System services (atlas / executor / pilot / liaison) ship with
