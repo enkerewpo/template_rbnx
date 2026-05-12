@@ -5,7 +5,7 @@ Demonstrates:
   * Capability + on_init / on_activate lifecycle decorators.
   * Declaring built-in `robonix/primitive/chassis/*` contracts (no
     package-local .toml — primitives reuse the canonical surface).
-  * @cap.grpc handler for chassis/move (typed against codegen-emitted
+  * @mock_chassis.grpc handler for chassis/move (typed against codegen-emitted
     Request/Response classes).
   * ROS 2 publisher for chassis/odom + subscription for chassis/twist_in.
 
@@ -22,7 +22,7 @@ import time
 
 from robonix_api import Primitive, Ok, Err, Deferred
 
-cap = Primitive(id="mock_chassis", namespace="robonix/primitive/chassis")
+mock_chassis = Primitive(id="mock_chassis", namespace="robonix/primitive/chassis")
 
 import chassis_pb2          # type: ignore  # noqa: E402  (codegen)
 import nav_msgs_pb2         # type: ignore  # noqa: E402
@@ -51,8 +51,8 @@ _pub_thread: threading.Thread | None = None
 _stop = threading.Event()
 
 
-# ── @cap.grpc: chassis/move RPC ──────────────────────────────────────
-@cap.grpc("robonix/primitive/chassis/move")
+# ── @mock_chassis.grpc: chassis/move RPC ──────────────────────────────────────
+@mock_chassis.grpc("robonix/primitive/chassis/move")
 def move(req, ctx):
     """One-shot move command. TODO: replace with your real chassis
     motion controller. Stub just records the velocity and returns ok."""
@@ -98,13 +98,13 @@ def _publish_loop() -> None:
         msg.pose.pose.orientation.w = math.cos(_state["yaw"] / 2.0)
         msg.twist.twist.linear.x  = _state["vx"]
         msg.twist.twist.angular.z = _state["wz"]
-        cap.emit("robonix/primitive/chassis/odom", msg)
+        mock_chassis.emit("robonix/primitive/chassis/odom", msg)
 
         _stop.wait(period)
 
 
 # ── Lifecycle ────────────────────────────────────────────────────────
-@cap.on_init
+@mock_chassis.on_init
 def init(cfg: dict):
     """REGISTERED → INACTIVE. Read cfg, declare ROS 2 contracts."""
     _state.update({
@@ -113,7 +113,7 @@ def init(cfg: dict):
     })
 
     # Subscribe to /cmd_vel (twist_in contract).
-    cap.create_subscription(
+    mock_chassis.create_subscription(
         contract_id="robonix/primitive/chassis/twist_in",
         topic="/cmd_vel",
         msg_type=Twist,
@@ -123,7 +123,7 @@ def init(cfg: dict):
 
     # Publisher for /odom (odom contract). create_publisher also
     # auto-declares the contract on atlas, so consumers can find us.
-    cap.create_publisher(
+    mock_chassis.create_publisher(
         contract_id="robonix/primitive/chassis/odom",
         topic="/odom",
         msg_type=Odometry,
@@ -135,7 +135,7 @@ def init(cfg: dict):
     return Ok()
 
 
-@cap.on_activate
+@mock_chassis.on_activate
 def activate():
     """INACTIVE → ACTIVE. Start the odom publish thread."""
     global _pub_thread
@@ -147,13 +147,13 @@ def activate():
     return Ok()
 
 
-@cap.on_shutdown
+@mock_chassis.on_shutdown
 def shutdown():
     _stop.set()
 
 
 def main() -> int:
-    cap.run()
+    mock_chassis.run()
     return 0
 
 

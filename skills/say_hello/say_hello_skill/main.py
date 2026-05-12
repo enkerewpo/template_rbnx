@@ -8,13 +8,13 @@ Demonstrates:
     on_activate / on_deactivate are REQUIRED for skills.
   * Owning a custom contract under `capabilities/`: SayHello.srv +
     say_hello.v1.toml + driver.v1.toml. Codegen produces the typed
-    Request/Response classes used in @cap.mcp below.
+    Request/Response classes used in @say_hello.mcp below.
   * Single MCP tool — the LLM dispatches here through pilot when
     `rbnx chat` sees a relevant prompt ("say hello to alice").
 
 Replace the rendering logic with your real skill body. The shape
-(declare contract → @cap.on_init → @cap.on_activate / on_deactivate
-→ @cap.mcp) is the only thing the framework cares about.
+(declare contract → @say_hello.on_init → @say_hello.on_activate / on_deactivate
+→ @say_hello.mcp) is the only thing the framework cares about.
 """
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ import logging
 
 from robonix_api import Skill, Ok, Err, Deferred
 
-cap = Skill(id="say_hello", namespace="robonix/skill/say_hello")
+say_hello = Skill(id="say_hello", namespace="robonix/skill/say_hello")
 
 # Codegen output: the typed dataclasses derived from
 # capabilities/lib/say_hello/srv/SayHello.srv. Available after
@@ -41,10 +41,10 @@ _state = {
 }
 
 
-# ── @cap.mcp: the actual LLM-callable tool ──────────────────────────
+# ── @say_hello.mcp: the actual LLM-callable tool ──────────────────────────
 # Description for pilot's tool-picker comes from the docstring.
 # Pilot uses it verbatim when deciding whether to dispatch this skill.
-@cap.mcp("robonix/skill/say_hello/say")
+@say_hello.mcp("robonix/skill/say_hello/say")
 def say(req: SayHello_Request) -> SayHello_Response:
     """Greet a person or thing. The LLM should call this whenever the
     user wants someone to be greeted, with optional style hint
@@ -67,7 +67,7 @@ def say(req: SayHello_Request) -> SayHello_Response:
 
 
 # ── Lifecycle ────────────────────────────────────────────────────────
-@cap.on_init
+@say_hello.on_init
 def init(cfg: dict):
     """REGISTERED → INACTIVE. Light: parse config, validate inputs.
     Don't allocate heavy resources — the user might have spawned us
@@ -80,7 +80,7 @@ def init(cfg: dict):
     return Ok()
 
 
-@cap.on_activate
+@say_hello.on_activate
 def activate():
     """INACTIVE → ACTIVE. Heavy: this is where a real skill
     loads models, opens hardware, starts background threads.
@@ -91,7 +91,7 @@ def activate():
     return Ok()
 
 
-@cap.on_deactivate
+@say_hello.on_deactivate
 def deactivate():
     """ACTIVE → INACTIVE. Drop heavy state but stay registered;
     a follow-up MCP call will re-activate. Executor's eviction policy
@@ -101,7 +101,7 @@ def deactivate():
     return Ok()
 
 
-@cap.on_shutdown
+@say_hello.on_shutdown
 def shutdown():
     """any → TERMINATED. Last-chance cleanup: flush logs, persist
     state, etc."""
@@ -109,7 +109,7 @@ def shutdown():
 
 
 def main() -> int:
-    cap.run()
+    say_hello.run()
     return 0
 
 

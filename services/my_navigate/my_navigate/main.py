@@ -5,23 +5,23 @@ Demonstrates as much of the robonix v0.1 Python API as fits in one
 service:
 
   Lifecycle decorators
-    @cap.on_init       — parse cfg, validate, declare interfaces
-    @cap.on_activate   — find primitives, open channels, allocate threads
-    @cap.on_deactivate — close channels, drop heavy state
-    @cap.on_shutdown   — last-chance cleanup
+    @my_navigate.on_init       — parse cfg, validate, declare interfaces
+    @my_navigate.on_activate   — find primitives, open channels, allocate threads
+    @my_navigate.on_deactivate — close channels, drop heavy state
+    @my_navigate.on_shutdown   — last-chance cleanup
 
   Discovery + connect
     ATLAS.find_capability(contract_id=..., transport=…) — returns list[Capability]
     ATLAS.find_unique_capability(...) — same but errors on 0 or >1 matches
-    cap.connect_capability(cap_view, contract_id, transport) — open Channel
+    my_navigate.connect_capability(cap_view, contract_id, transport) — open Channel
     Channel.endpoint          — atlas-resolved topic / host:port
 
   Atlas declares
-    cap.declare_grpc(...)   — explicit gRPC declare (driver auto-declared)
-    cap.create_publisher(...) / cap.emit(...)  — ROS 2 producer
+    my_navigate.declare_grpc(...)   — explicit gRPC declare (driver auto-declared)
+    my_navigate.create_publisher(...) / my_navigate.emit(...)  — ROS 2 producer
 
   MCP tools
-    @cap.mcp("...")  — typed-input tool the LLM dispatches via pilot
+    @my_navigate.mcp("...")  — typed-input tool the LLM dispatches via pilot
 
   Result helpers: Ok / Err / Deferred
 
@@ -39,7 +39,7 @@ import uuid
 from robonix_api import ATLAS, Service, Ok, Err, Deferred
 from robonix_api.atlas_types import Transport
 
-cap = Service(id="my_navigate", namespace="robonix/service/navigation")
+my_navigate = Service(id="my_navigate", namespace="robonix/service/navigation")
 
 # Codegen-emitted typed dataclasses for the MCP tools.
 from navigation_mcp import (  # noqa: E402
@@ -66,7 +66,7 @@ _state: dict = {
 }
 
 
-# ── @cap.mcp tools ───────────────────────────────────────────────────
+# ── @my_navigate.mcp tools ───────────────────────────────────────────────────
 # IDL shapes (lib/navigation/srv/):
 #   Navigate.srv             req: geometry_msgs/PoseStamped goal
 #                            resp: bool accepted, string goal_id, string status_message
@@ -74,7 +74,7 @@ _state: dict = {
 #                            resp: bool known, string status, bool terminal
 #   CancelNavigation.srv     req: string goal_id
 #                            resp: bool accepted, string status_message
-@cap.mcp("robonix/service/navigation/navigate")
+@my_navigate.mcp("robonix/service/navigation/navigate")
 def navigate(req: Navigate_Request) -> Navigate_Response:
     """Drive the robot to req.goal (PoseStamped). Non-blocking — returns
     a goal_id; poll progress with `status`. TODO(planner): replace the
@@ -93,7 +93,7 @@ def navigate(req: Navigate_Request) -> Navigate_Response:
     )
 
 
-@cap.mcp("robonix/service/navigation/status")
+@my_navigate.mcp("robonix/service/navigation/status")
 def status(req: GetNavigationStatus_Request) -> GetNavigationStatus_Response:
     """Poll progress. Empty goal_id == latest goal."""
     with _state["lock"]:
@@ -106,7 +106,7 @@ def status(req: GetNavigationStatus_Request) -> GetNavigationStatus_Response:
     )
 
 
-@cap.mcp("robonix/service/navigation/cancel")
+@my_navigate.mcp("robonix/service/navigation/cancel")
 def cancel(req: CancelNavigation_Request) -> CancelNavigation_Response:
     """Abort the active goal. Idempotent. Empty goal_id targets the active goal."""
     with _state["lock"]:
@@ -120,7 +120,7 @@ def cancel(req: CancelNavigation_Request) -> CancelNavigation_Response:
 
 
 # ── Lifecycle ────────────────────────────────────────────────────────
-@cap.on_init
+@my_navigate.on_init
 def init(cfg: dict):
     """REGISTERED → INACTIVE. Light: parse cfg only. Don't touch
     other caps yet — they may not be online."""
@@ -132,7 +132,7 @@ def init(cfg: dict):
     return Ok()
 
 
-@cap.on_activate
+@my_navigate.on_activate
 def activate():
     """INACTIVE → ACTIVE. Discover the chassis primitive and open
     the channel we'll use to issue motion commands. Returns
@@ -149,7 +149,7 @@ def activate():
     if not candidates:
         return Deferred("no chassis primitive online (waiting for chassis/move)")
     cap_view = candidates[0]  # single-robot template; multi-robot deploys
-                              # filter by owner_id (e.g. cap.owner_id == "front_chassis")
+                              # filter by owner_id (e.g. cap_view.owner_id == "front_chassis")
     log.info("found %d chassis candidate(s); using %s",
              len(candidates), cap_view.owner_id)
 
@@ -157,7 +157,7 @@ def activate():
     #    bookkeeping — Capability tracks it for teardown, so even
     #    if we never explicitly close, atlas drops the edge when
     #    we shut down.
-    ch = cap.connect_capability(
+    ch = my_navigate.connect_capability(
         cap_view,
         "robonix/primitive/chassis/move",
         Transport.GRPC,
@@ -168,13 +168,13 @@ def activate():
 
     # 3. (Optional) declare any extra contracts we expose beyond the
     #    auto-declared MCP tools. Skipped here — the four
-    #    navigation/* contracts are auto-declared by @cap.mcp / the
+    #    navigation/* contracts are auto-declared by @my_navigate.mcp / the
     #    Capability framework.
 
     return Ok()
 
 
-@cap.on_deactivate
+@my_navigate.on_deactivate
 def deactivate():
     """ACTIVE → INACTIVE. Drop the chassis channel, cancel any active
     task. Idempotent."""
@@ -183,19 +183,19 @@ def deactivate():
         _state["active_task_id"] = ""
         _state["chassis_cap_id"] = ""
         _state["chassis_move_endpoint"] = ""
-    # Channels we opened with cap.connect_capability are auto-closed by the
+    # Channels we opened with my_navigate.connect_capability are auto-closed by the
     # Capability framework; nothing to do here.
     log.info("deactivated")
     return Ok()
 
 
-@cap.on_shutdown
+@my_navigate.on_shutdown
 def shutdown():
     log.info("shutdown")
 
 
 def main() -> int:
-    cap.run()
+    my_navigate.run()
     return 0
 
 
