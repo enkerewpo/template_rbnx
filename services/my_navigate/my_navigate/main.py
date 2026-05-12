@@ -149,9 +149,9 @@ def activate():
     if not candidates:
         return Deferred("no chassis primitive online (waiting for chassis/move)")
     cap_view = candidates[0]  # single-robot template; multi-robot deploys
-                              # filter by owner_id (e.g. cap_view.owner_id == "front_chassis")
+                              # filter by provider_id (e.g. cap_view.provider_id == "front_chassis")
     log.info("found %d chassis candidate(s); using %s",
-             len(candidates), cap_view.owner_id)
+             len(candidates), cap_view.provider_id)
 
     # 2. Open a channel. The Channel context-manages the atlas
     #    bookkeeping — Capability tracks it for teardown, so even
@@ -162,9 +162,9 @@ def activate():
         "robonix/primitive/chassis/move",
         Transport.GRPC,
     )
-    _state["chassis_cap_id"] = cap_view.owner_id
+    _state["chassis_cap_id"] = cap_view.provider_id
     _state["chassis_move_endpoint"] = ch.endpoint
-    log.info("connected to %s @ %s", cap_view.owner_id, ch.endpoint)
+    log.info("connected to %s @ %s", cap_view.provider_id, ch.endpoint)
 
     # 3. (Optional) declare any extra contracts we expose beyond the
     #    auto-declared MCP tools. Skipped here — the four
