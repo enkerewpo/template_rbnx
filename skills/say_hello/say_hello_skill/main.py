@@ -20,9 +20,9 @@ from __future__ import annotations
 
 import logging
 
-from robonix_api import Capability, Ok, Err, Deferred
+from robonix_api import Skill, Ok, Err, Deferred
 
-cap = Capability(id="say_hello", namespace="robonix/skill/say_hello")
+cap = Skill(id="say_hello", namespace="robonix/skill/say_hello")
 
 # Codegen output: the typed dataclasses derived from
 # capabilities/lib/say_hello/srv/SayHello.srv. Available after

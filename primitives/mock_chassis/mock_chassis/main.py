@@ -20,9 +20,9 @@ import math
 import threading
 import time
 
-from robonix_api import Capability, Ok, Err, Deferred
+from robonix_api import Primitive, Ok, Err, Deferred
 
-cap = Capability(id="mock_chassis", namespace="robonix/primitive/chassis")
+cap = Primitive(id="mock_chassis", namespace="robonix/primitive/chassis")
 
 import chassis_pb2          # type: ignore  # noqa: E402  (codegen)
 import nav_msgs_pb2         # type: ignore  # noqa: E402

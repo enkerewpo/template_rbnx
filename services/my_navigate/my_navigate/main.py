@@ -11,9 +11,9 @@ service:
     @cap.on_shutdown   — last-chance cleanup
 
   Discovery + connect
-    atlas.get(capability_id)  — by id, returns CapabilityRecord | None
-    atlas.find(contract_id, *, transport=…) — by contract, returns list
-    cap.connect(provider, contract_id, transport)  — open Channel
+    ATLAS.find_capability(contract_id=..., transport=…) — returns list[Capability]
+    ATLAS.find_unique_capability(...) — same but errors on 0 or >1 matches
+    cap.connect_capability(cap_view, contract_id, transport) — open Channel
     Channel.endpoint          — atlas-resolved topic / host:port
 
   Atlas declares
@@ -36,10 +36,10 @@ import threading
 import time
 import uuid
 
-from robonix_api import Capability, Ok, Err, Deferred, atlas
+from robonix_api import ATLAS, Service, Ok, Err, Deferred
 from robonix_api.atlas_types import Transport
 
-cap = Capability(id="my_navigate", namespace="robonix/service/navigation")
+cap = Service(id="my_navigate", namespace="robonix/service/navigation")
 
 # Codegen-emitted typed dataclasses for the MCP tools.
 from navigation_mcp import (  # noqa: E402
@@ -140,31 +140,31 @@ def activate():
     surface that to the operator and retry."""
 
     # 1. Discovery: every cap providing chassis/move over gRPC.
-    #    atlas.find always returns a list — possibly empty, possibly
-    #    multiple. Caller decides how to pick.
-    candidates = atlas.find(
-        "robonix/primitive/chassis/move",
+    #    ATLAS.find_capability always returns a list — possibly empty,
+    #    possibly multiple. Caller decides how to pick.
+    candidates = ATLAS.find_capability(
+        contract_id="robonix/primitive/chassis/move",
         transport=Transport.GRPC,
     )
     if not candidates:
         return Deferred("no chassis primitive online (waiting for chassis/move)")
-    rec = candidates[0]  # for a single-robot template; multi-robot deploys
-                         # pick by capability_id (e.g. atlas.get("front_chassis"))
+    cap_view = candidates[0]  # single-robot template; multi-robot deploys
+                              # filter by owner_id (e.g. cap.owner_id == "front_chassis")
     log.info("found %d chassis candidate(s); using %s",
-             len(candidates), rec.capability_id)
+             len(candidates), cap_view.owner_id)
 
     # 2. Open a channel. The Channel context-manages the atlas
     #    bookkeeping — Capability tracks it for teardown, so even
     #    if we never explicitly close, atlas drops the edge when
     #    we shut down.
-    ch = cap.connect(
-        provider=rec,
-        contract_id="robonix/primitive/chassis/move",
-        transport=Transport.GRPC,
+    ch = cap.connect_capability(
+        cap_view,
+        "robonix/primitive/chassis/move",
+        Transport.GRPC,
     )
-    _state["chassis_cap_id"] = rec.capability_id
+    _state["chassis_cap_id"] = cap_view.owner_id
     _state["chassis_move_endpoint"] = ch.endpoint
-    log.info("connected to %s @ %s", rec.capability_id, ch.endpoint)
+    log.info("connected to %s @ %s", cap_view.owner_id, ch.endpoint)
 
     # 3. (Optional) declare any extra contracts we expose beyond the
     #    auto-declared MCP tools. Skipped here — the four
@@ -183,7 +183,7 @@ def deactivate():
         _state["active_task_id"] = ""
         _state["chassis_cap_id"] = ""
         _state["chassis_move_endpoint"] = ""
-    # Channels we opened with cap.connect are auto-closed by the
+    # Channels we opened with cap.connect_capability are auto-closed by the
     # Capability framework; nothing to do here.
     log.info("deactivated")
     return Ok()
